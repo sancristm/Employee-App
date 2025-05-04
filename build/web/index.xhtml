@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <h:head>
+        <title>Employee Management System</title>
+        <style>
+            .action-buttons {
+                margin-top: 15px;
+                text-align: right;
+            }
+            .dialog-form .ui-outputlabel {
+                font-weight: bold;
+            }
+            .required-field label:after {
+                content: " *";
+                color: red;
+            }
+        </style>
+    </h:head>
+    <h:body>
+        <h:form id="form">
+            <!-- Global Messages -->
+            <p:growl id="growl" showDetail="true" sticky="true" />
+
+            <!-- Main Employee Table -->
+            <p:panel header="Employee Management" style="margin-bottom:20px">
+                <p:toolbar>
+                    <p:toolbarGroup>
+                        <p:commandButton value="Add Employee" icon="pi pi-plus" 
+                                         onclick="PF('addEmployeeDialog').show()"
+                                         styleClass="ui-button-primary" />
+                    </p:toolbarGroup>
+                </p:toolbar>
+
+                <p:dataTable id="employeeTable" var="emp" value="#{employeeBean.employees}" 
+                             paginator="true" rows="10" 
+                             selection="#{employeeBean.selectedEmployee}" 
+                             selectionMode="single" rowKey="#{emp.id}"
+                             emptyMessage="No employees found"
+                             style="margin-top:10px">
+
+                    <p:ajax event="rowSelect" listener="#{employeeBean.onRowSelect}" 
+                            update=":form:editPanel" />
+                    <p:ajax event="rowUnselect" listener="#{employeeBean.onRowUnselect}" />
+
+                    <!-- Table columns  -->
+                    <p:column headerText="ID" width="80">
+                        <h:outputText value="#{emp.id}" />
+                    </p:column>
+
+                    <p:column headerText="First Name">
+                        <h:outputText value="#{emp.firstName}" />
+                    </p:column>
+
+                    <p:column headerText="Last Name">
+                        <h:outputText value="#{emp.lastName}" />
+                    </p:column>
+
+                    <p:column headerText="Email">
+                        <h:outputText value="#{emp.email}" />
+                    </p:column>
+
+                    <p:column headerText="Department">
+                        <h:outputText value="#{emp.department}" />
+                    </p:column>
+
+                    <p:column headerText="Salary" width="120">
+                        <h:outputText value="#{emp.salary}">
+                            <f:convertNumber type="currency" currencySymbol="KSH" />
+                        </h:outputText>
+                    </p:column>
+
+                    <p:column headerText="Actions" width="150" style="text-align:center">
+                        <p:commandButton icon="pi pi-pencil" title="Edit" 
+                                         styleClass="ui-button-success"
+                                         oncomplete="PF('editEmployeeDialog').show()" 
+                                         update=":form:editPanel">
+                            <f:setPropertyActionListener value="#{emp}" 
+                                                         target="#{employeeBean.selectedEmployee}" />
+                        </p:commandButton>
+
+                        <p:commandButton icon="pi pi-trash" title="Delete" 
+                                         styleClass="ui-button-danger"
+                                         onclick="PF('confirmDeleteDialog').show()"
+                                         update=":form:deleteDialogContent">
+                            <f:setPropertyActionListener value="#{emp}" 
+                                                         target="#{employeeBean.selectedEmployee}" />
+                        </p:commandButton>
+                    </p:column>
+                </p:dataTable>
+            </p:panel>
+
+            <!-- Edit Employee Dialog -->
+            <p:dialog header="Edit Employee" widgetVar="editEmployeeDialog" modal="true" 
+                      resizable="false" width="600" closeOnEscape="true" draggable="false">
+                <p:outputPanel id="editPanel">
+                    <p:panelGrid columns="2" layout="grid" styleClass="dialog-form"
+                                 rendered="#{employeeBean.selectedEmployee != null}">
+                        <p:outputLabel for="editId" value="Employee ID:" />
+                        <p:inputText id="editId" value="#{employeeBean.selectedEmployee.id}" 
+                                     disabled="true" styleClass="ui-state-disabled" />
+
+                        <p:outputLabel for="editFirstName" value="First Name:" styleClass="required-field" />
+                        <p:inputText id="editFirstName" value="#{employeeBean.selectedEmployee.firstName}" 
+                                     required="true" requiredMessage="First name is required" />
+
+                        <p:outputLabel for="editLastName" value="Last Name:" styleClass="required-field" />
+                        <p:inputText id="editLastName" value="#{employeeBean.selectedEmployee.lastName}" 
+                                     required="true" requiredMessage="Last name is required" />
+
+                        <p:outputLabel for="editEmail" value="Email:" styleClass="required-field" />
+                        <p:inputText id="editEmail" value="#{employeeBean.selectedEmployee.email}" 
+                                     required="true" requiredMessage="Valid email is required">
+                            <f:validator validatorId="emailValidator" />
+                        </p:inputText>
+
+                        <p:outputLabel for="editDepartment" value="Department:" />
+                        <p:inputText id="editDepartment" value="#{employeeBean.selectedEmployee.department}" />
+
+                        <p:outputLabel for="editSalary" value="Salary:" />
+                        <p:inputNumber id="editSalary" value="#{employeeBean.selectedEmployee.salary}" 
+                                       minValue="0" maxValue="1000000" decimalPlaces="2" />
+                    </p:panelGrid>
+
+                    <div class="action-buttons">
+                        <p:commandButton value="Update" icon="pi pi-check" 
+                                         action="#{employeeBean.updateEmployee}" 
+                                         update=":form:growl,:form:employeeTable"
+                                         process="@form"
+                                         oncomplete="if(!args.validationFailed) PF('editEmployeeDialog').hide()" />
+                        <p:commandButton value="Cancel" icon="pi pi-times" 
+                                         onclick="PF('editEmployeeDialog').hide()" 
+                                         immediate="true" />
+                    </div>
+                </p:outputPanel>
+            </p:dialog>
+
+            <!-- Delete Confirmation Dialog -->
+            <p:dialog header="Confirm Deletion" widgetVar="confirmDeleteDialog" modal="true" 
+                      resizable="false" width="400" closeOnEscape="true" draggable="false">
+                <p:outputPanel id="deleteDialogContent">
+                    <h:panelGroup rendered="#{employeeBean.selectedEmployee != null}">
+                        <p:panelGrid columns="1" styleClass="ui-panelgrid-blank" style="margin-bottom:15px">
+                            <p:message severity="warn" 
+                                       summary="Are you sure you want to delete this employee?" />
+                            <p:outputLabel value="Employee: #{employeeBean.selectedEmployee.firstName} #{employeeBean.selectedEmployee.lastName}" />
+                            <p:outputLabel value="ID: #{employeeBean.selectedEmployee.id}" />
+                        </p:panelGrid>
+
+                        <div class="action-buttons">
+                            <p:commandButton value="Delete" icon="pi pi-trash" 
+                                             action="#{employeeBean.deleteEmployee}" 
+                                             update=":form:growl,:form:employeeTable"
+                                             oncomplete="PF('confirmDeleteDialog').hide()"
+                                             styleClass="ui-button-danger" />
+                            <p:commandButton value="Cancel" icon="pi pi-times" 
+                                             onclick="PF('confirmDeleteDialog').hide()" 
+                                             immediate="true" />
+                        </div>
+                    </h:panelGroup>
+                </p:outputPanel>
+            </p:dialog>
+        </h:form>
+
+        <!-- the employee list when page loads -->
+        <f:event type="preRenderView" listener="#{employeeBean.loadEmployees}" />
+    </h:body>
+</html>
